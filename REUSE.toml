@@ -1,0 +1,11 @@
+version = 1
+SPDX-PackageName = "rust-nix-demo"
+SPDX-PackageSupplier = "Jane Doe <jane@example.org>"
+SPDX-PackageDownloadLocation = "https://git.example.org/haskell/rust-nix-demo"
+
+[[annotations]]
+path = ["**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Jane Doe <jane@example.org>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
