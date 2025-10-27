@@ -14,12 +14,14 @@
     # rust-overlay provides a specific Rust toolchain version
     # downloaded from Rust's cache.
     #
-    # An alternative is fenix:
+    #rust-overlay = {
+    #  url = "github:oxalica/rust-overlay/stable";
+    #  inputs.nixpkgs.follows = "nixpkgs";
+    #};
+
+    # An alternative to rust-overlay is fenix:
     # https://github.com/nix-community/fenix/issues/78#issuecomment-1231779412
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay/stable";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    #fenix.url = "github:nix-community/fenix";
 
     # cargo2nix generate many Nix packages (one per dependent Rust crate),
     # instead of a single Nix package (for all the dependent Rust crates).
@@ -33,7 +35,7 @@
     cargo2nix = {
       url = "github:cargo2nix/cargo2nix/release-0.12";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.rust-overlay.follows = "rust-overlay";
+      #inputs.rust-overlay.follows = "rust-overlay";
     };
   };
 
@@ -59,11 +61,35 @@
             rustPkgs = pkgs.rustBuilder.makePackageSet {
               # MaintenanceNote: currently is the same version
               # as the one used by cargo2nix.
-              rustVersion = "1.83.0";
+              rustVersion = pkgs.rustPlatform.rustc.version;
               packageFun = import rust/Cargo.nix;
 
-              # MaintenanceNote: can be set to use fenix instead of rust-overlay.
-              # rustToolchain =
+              # Using Nixpkgs' rustToolchain
+              rustToolchain =
+                pkgs.symlinkJoin {
+                  name = "rust-toolchain";
+                  paths = [
+                    pkgs.cargo
+                    pkgs.rustc
+                  ];
+                }
+                // {
+                  inherit (pkgs.rustc) version;
+                };
+              # Using fenix rustToolchain
+              /*
+                rustToolchain =
+                  with inputs.fenix.packages.x86_64-linux;
+                  combine [
+                    default.cargo
+                    default.rustc
+                    default.clippy
+                    #targets.${target}.latest.rust-std
+                  ]
+                  // {
+                    inherit (default.rustc.version) version;
+                  };
+              */
 
               # Filter-in only required files to build the package.
               # This is currently no better than ./rust
@@ -99,7 +125,7 @@
             ];
             nativeBuildInputs = [
               # Provides the cargo2nix executable
-              inputs.cargo2nix.packages.${system}.default
+              inputs.cargo2nix.packages.${system}.cargo2nix
 
               # ToDo: add something using this
               pkgs.nodejs_22
