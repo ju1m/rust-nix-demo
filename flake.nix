@@ -1,6 +1,15 @@
 {
   description = "A project";
 
+  # MaintenanceOpinion:
+  # https://devenv.sh/blog/2025/08/22/closing-the-nix-gap-from-environments-to-packaged-applications-for-rust/
+  #
+  # > Developers don't want to compare crate2nix vs cargo2nix vs naersk vs crane—they want a tested solution that works.
+  # > devenv now provides languages.rust.import, which packages Rust applications using crate2nix.
+  # > We evaluated the available tools and chose crate2nix, so you don't have to.
+  # > We've done this before. In PR #1500, we replaced fenix with rust-overlay for Rust toolchains
+  # > because rust-overlay was better maintained.
+
   inputs = {
     # Reuse the host's nixpkgs in (nix registry list)
     # when updating with: nix flake update nixpkgs
@@ -23,9 +32,14 @@
     # https://github.com/nix-community/fenix/issues/78#issuecomment-1231779412
     #fenix.url = "github:nix-community/fenix";
 
-    # cargo2nix generate many Nix packages (one per dependent Rust crate),
+    # cargo2nix generates many Nix packages (one per dependent Rust crate),
     # instead of a single Nix package (for all the dependent Rust crates).
     # See comparison here: https://nixos.wiki/wiki/Rust#Packaging_Rust_projects_with_nix
+    # This avoids rebuilding crates that do not need to,
+    # and enables some opportunistic sharing with other projects using the same Nix store.
+    # It does not however populate the rust/target/ directory when using `cargo` manually,
+    # and the artifacts are built in `release` mode, not `debug` mode,
+    # So cargo would rebuild them anyway.
     #
     # MaintenanceWarning: rust/Cargo.nix MUST be regenerated
     # after each change to rust/Cargo.{toml,lock} by using:

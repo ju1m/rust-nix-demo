@@ -4,4 +4,9 @@ version = "0.1.0"
 authors = ["Jane Doe <jane@example.org>"]
 edition = "2021"
 
+[features]
+
+[profile]
+
 [dependencies]
+serde = "1.0.228"
