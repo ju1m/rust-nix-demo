@@ -140,9 +140,6 @@
             nativeBuildInputs = [
               # Provides the cargo2nix executable
               inputs.cargo2nix.packages.${system}.cargo2nix
-
-              # ToDo: add something using this
-              pkgs.nodejs_22
             ];
             shellHook = ''
               ${inputs.self.checks.${system}.git-hooks-check.shellHook}
