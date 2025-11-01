@@ -12,7 +12,10 @@
 
   inputs = {
     # Reuse the host's nixpkgs in (nix registry list)
-    # when updating with: nix flake update nixpkgs
+    # when updating with:
+    #   nix flake update nixpkgs
+    # Override to a specific version with:
+    #   nix flake update --override-input nixpkgs github:NixOS/nixpkgs/f34483be5ee2418a563545a56743b7b59c549935
     nixpkgs.url = "flake:nixpkgs";
 
     # git-hooks provides Git pre-commit hooks
