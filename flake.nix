@@ -82,6 +82,7 @@
             # Create the workspace & dependencies package set
             rustPkgs = pkgs.rustBuilder.makePackageSet {
               packageFun = import rust/Cargo.nix;
+              #release = false;
 
               # Using Nixpkgs' rustToolchain
               # because it's more likely to already be on the local Nix store.
@@ -135,6 +136,7 @@
       # nix -L build
       packages = foreachSystem (
         args: with args; rec {
+          inherit rustPkgs;
           hello-world = rustPkgs.workspace.hello-world { };
           default = hello-world;
         }
@@ -143,10 +145,11 @@
       # nix -L develop
       devShells = foreachSystem (
         args: with args; {
+
           # UsageExplanation:
           # workspaceShell provides the project's dependencies and environment settings
           # necessary for a regular `cargo build`.
-          # It does not however provides dependent crates' built artifacts in a wrapped rustc,
+          # It does not however provision dependent crates' built artifacts in $NIX_RUST_LINK_FLAGS
           # therefore `cargo build` will download and build crates in rust/target.
           default = rustPkgs.workspaceShell {
             nativeBuildInputs = [
@@ -163,6 +166,56 @@
               fi
             '';
           };
+
+          # UsageAlternative:
+          # This alternative shell is only useful to:
+          # 1. Avoid downloading dependent crates twice (in nix store and in cargo's store).
+          # 2. Debug in the exact same environment as nix builds the project.
+
+          # UsageExplanation:
+          # Contrary to the default shell,
+          # this shell provisions dependent crates using nix
+          # instead of letting cargo download them.
+          # Unfortunately this has the side effect to overwrite Cargo.{toml,lock}.
+          # To enter the shell with:
+          #   nix -L develop .#provision-cargo
+          # To rebuild (cargo build):
+          #   runHook runCargo
+          provision-cargo =
+            (inputs.self.packages.${system}.hello-world.override (previousArgs: {
+              # Increase cargoVerbosityLevel
+              # and print $NIX_RUST_LINK_FLAGS and $NIX_RUST_BUILD_FLAGS
+              NIX_DEBUG = 1;
+            })).shell.overrideAttrs
+              (previousAttrs: {
+                shellHook = ''
+                  cd rust
+                  RUST_DIR="$PWD"
+                  exitHook () {
+                    cd "$RUST_DIR"
+                    rm -rf build_deps .cargo .cargo-build-output deps invoke.log target
+                    mv -v Cargo.original.lock Cargo.lock
+                    mv -v Cargo.original.nix Cargo.nix
+                    mv -v Cargo.original.toml Cargo.toml
+                  }
+                  trap exitHook EXIT
+
+                  echo 2>/dev/null "$(tput rev)This Nix shell needs to overwrite Cargo.{toml,lock}.$(tput sgr0)"
+                  echo 2>/dev/null "Use Ctrl-C to interrupt or any other key to continue"
+                  read
+
+                  cp -f Cargo.lock Cargo.original.lock
+                  cp -f Cargo.nix Cargo.original.nix
+                  eval "$configurePhase"
+
+                  # This overrides your .cargo folder, e.g. for setting cross-compilers 
+                  runHook overrideCargoManifest
+                  # This sets up linker flags for the `rustc` invocations
+                  runHook setBuildEnv
+
+                  echo 2>/dev/null "$(tput rev)To run cargo build$(tput sgr0): runHook runCargo"
+                '';
+              });
         }
       );
 
