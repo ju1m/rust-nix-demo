@@ -143,12 +143,13 @@
       # nix -L develop
       devShells = foreachSystem (
         args: with args; {
-          default = pkgs.mkShell {
-            inputsFrom = [
-              inputs.self.packages.${system}.default
-            ];
+          # UsageExplanation:
+          # workspaceShell provides the project's dependencies and environment settings
+          # necessary for a regular `cargo build`.
+          # It does not however provides dependent crates' built artifacts in a wrapped rustc,
+          # therefore `cargo build` will download and build crates in rust/target.
+          default = rustPkgs.workspaceShell {
             nativeBuildInputs = [
-              # Provides the cargo2nix executable
               inputs.cargo2nix.packages.${system}.cargo2nix
             ];
             shellHook = ''
