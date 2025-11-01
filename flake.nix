@@ -20,15 +20,20 @@
     git-hooks.url = "github:cachix/git-hooks.nix";
     git-hooks.inputs.nixpkgs.follows = "nixpkgs";
 
-    # rust-overlay provides a specific Rust toolchain version
-    # downloaded from Rust's cache.
+    # DependencyAlternative:
+    # rust-overlay provides a specific rustToolchain
+    # downloaded from Rust's cache instead of cache.nixos.org.
     #
     #rust-overlay = {
     #  url = "github:oxalica/rust-overlay/stable";
     #  inputs.nixpkgs.follows = "nixpkgs";
     #};
 
-    # An alternative to rust-overlay is fenix:
+    # DependencyAlternative:
+    # fenix is yet another way to provide rustToolchain:
+    # > rust-overlay is bigger in size and includes all the manifests in the past
+    # > fenix requires sha256 for older toolchains and depends on IFD (import-from-derivation)
+    # > for things like fromToolchainFile, but is a lot smaller in size
     # https://github.com/nix-community/fenix/issues/78#issuecomment-1231779412
     #fenix.url = "github:nix-community/fenix";
 
@@ -37,9 +42,11 @@
     # See comparison here: https://nixos.wiki/wiki/Rust#Packaging_Rust_projects_with_nix
     # This avoids rebuilding crates that do not need to,
     # and enables some opportunistic sharing with other projects using the same Nix store.
-    # It does not however populate the rust/target/ directory when using `cargo` manually,
-    # and the artifacts are built in `release` mode, not `debug` mode,
-    # So cargo would rebuild them anyway.
+    #
+    # ResourceSpaceWarning:
+    # cargo2nix does not populate the rust/target/ directory or provide `cargo` with the crates,
+    # besides by default the artifacts are built in `release` mode, not `debug` mode
+    # so cargo would rebuild them anyway.
     #
     # MaintenanceWarning: rust/Cargo.nix MUST be regenerated
     # after each change to rust/Cargo.{toml,lock},
@@ -71,12 +78,10 @@
             };
             # Create the workspace & dependencies package set
             rustPkgs = pkgs.rustBuilder.makePackageSet {
-              # MaintenanceNote: currently is the same version
-              # as the one used by cargo2nix.
-              rustVersion = pkgs.rustPlatform.rustc.version;
               packageFun = import rust/Cargo.nix;
 
               # Using Nixpkgs' rustToolchain
+              # because it's more likely to already be on the local Nix store.
               rustToolchain =
                 pkgs.symlinkJoin {
                   name = "rust-toolchain";
@@ -88,7 +93,11 @@
                 // {
                   inherit (pkgs.rustc) version;
                 };
-              # Using fenix rustToolchain
+
+              # DependencyAlternative: using rust-overlay's rustToolchain
+              # rustVersion = "1.86.0";
+
+              # DependencyAlternative: using fenix's rustToolchain
               /*
                 rustToolchain =
                   with inputs.fenix.packages.x86_64-linux;
