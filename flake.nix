@@ -42,10 +42,8 @@
     # So cargo would rebuild them anyway.
     #
     # MaintenanceWarning: rust/Cargo.nix MUST be regenerated
-    # after each change to rust/Cargo.{toml,lock} by using:
-    #
-    # (cd rust && cargo2nix)
-    #
+    # after each change to rust/Cargo.{toml,lock},
+    # this is done when entering the shell (see shellHook below).
     cargo2nix = {
       url = "github:cargo2nix/cargo2nix/release-0.12";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -143,6 +141,13 @@
             ];
             shellHook = ''
               ${inputs.self.checks.${system}.git-hooks-check.shellHook}
+
+              # CodeExplanation: update Cargo.nix
+              # when Cargo.lock has a newer modification time.
+              if test rust/Cargo.lock -nt rust/Cargo.nix; then
+                echo 2>/dev/null "$(tput rev)Updating rust/Cargo.nix$(tput sgr0)"
+                (cd rust && cargo2nix --overwrite --locked)
+              fi
             '';
           };
         }
