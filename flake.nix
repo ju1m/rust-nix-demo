@@ -15,7 +15,7 @@
     # when updating with:
     #   nix flake update nixpkgs
     # Override to a specific version with:
-    #   nix flake update --override-input nixpkgs github:NixOS/nixpkgs/f34483be5ee2418a563545a56743b7b59c549935
+    #   nix flake lock --override-input nixpkgs github:NixOS/nixpkgs/f34483be5ee2418a563545a56743b7b59c549935
     nixpkgs.url = "flake:nixpkgs";
 
     # git-hooks provides Git pre-commit hooks
@@ -208,7 +208,7 @@
                   cp -f Cargo.nix Cargo.original.nix
                   eval "$configurePhase"
 
-                  # This overrides your .cargo folder, e.g. for setting cross-compilers 
+                  # This overrides your .cargo folder, e.g. for setting cross-compilers
                   runHook overrideCargoManifest
                   # This sets up linker flags for the `rustc` invocations
                   runHook setBuildEnv
